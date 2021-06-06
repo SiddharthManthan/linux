@@ -88,12 +88,6 @@
 			linux,can-disable;
 		};
 	};
-
-	// FIXME: Use extcon device provided by MUIC driver when available
-	usb_vbus: usb-vbus {
-		compatible = "linux,extcon-usb-gpio";
-		vbus-gpio = <&msmgpio 2 GPIO_ACTIVE_HIGH>;
-	};
 };
 
 &blsp_i2c4 {
@@ -141,6 +135,24 @@
 	light-sensor@10 {
 		compatible = "capella,cm3323";
 		reg = <0x10>;
+	};
+};
+
+&blsp_i2c1 {
+	status =  "okay";
+
+	pmic@66 {
+		compatible = "maxim,max77843";
+		interrupt-parent = <&msmgpio>;
+		interrupts = <12 IRQ_TYPE_EDGE_FALLING>;
+		reg = <0x66>;
+
+		muic: max77843-muic {
+			compatible = "maxim,max77843-muic";
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&muic_int_default &ovp_en_default>;
+		};
 	};
 };
 
@@ -234,12 +246,11 @@
 
 &usb {
 	status = "okay";
-	dr_mode = "peripheral";
-	extcon = <&usb_vbus>;
+	extcon = <&muic>, <&muic>;
 };
 
 &usb_hs_phy {
-	extcon = <&usb_vbus>;
+	extcon = <&muic>;
 };
 
 &wcd_codec {
@@ -394,5 +405,22 @@
 
 		drive-strength = <2>;
 		bias-disable;
+	};
+
+	muic_int_default: muic-int-default {
+		pins = "gpio12";
+		function = "gpio";
+
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	ovp_en_default: ovp_en_default {
+		pins = "gpio102";
+		function = "gpio";
+
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
 	};
 };
