@@ -139,6 +139,7 @@ struct max77843_muic_irq {
 
 static struct max77843_muic_irq max77843_muic_irqs[] = {
 	{ MAX77843_MUIC_IRQ_INT1_ADC,		"MUIC-ADC" },
+	{ MAX77849_MUIC_IRQ_INT1_ADCLOW,	"MUIC-ADC_LOW" },
 	{ MAX77843_MUIC_IRQ_INT1_ADCERROR,	"MUIC-ADC_ERROR" },
 	{ MAX77843_MUIC_IRQ_INT1_ADC1K,		"MUIC-ADC1K" },
 	{ MAX77843_MUIC_IRQ_INT2_CHGTYP,	"MUIC-CHGTYP" },
@@ -146,6 +147,7 @@ static struct max77843_muic_irq max77843_muic_irqs[] = {
 	{ MAX77843_MUIC_IRQ_INT2_DCDTMR,	"MUIC-DCDTMR" },
 	{ MAX77843_MUIC_IRQ_INT2_DXOVP,		"MUIC-DXOVP" },
 	{ MAX77843_MUIC_IRQ_INT2_VBVOLT,	"MUIC-VBVOLT" },
+	{ MAX77849_MUIC_IRQ_INT2_VIDRM,		"MUIC-VIDRM" },
 	{ MAX77843_MUIC_IRQ_INT3_VBADC,		"MUIC-VBADC" },
 	{ MAX77843_MUIC_IRQ_INT3_VDNMON,	"MUIC-VDNMON" },
 	{ MAX77843_MUIC_IRQ_INT3_DNRES,		"MUIC-DNRES" },
@@ -165,6 +167,7 @@ static const struct regmap_config max77843_muic_regmap_config = {
 static const struct regmap_irq max77843_muic_irq[] = {
 	/* INT1 interrupt */
 	{ .reg_offset = 0, .mask = MAX77843_MUIC_ADC, },
+	{ .reg_offset = 0, .mask = MAX77849_MUIC_ADCLOW, },
 	{ .reg_offset = 0, .mask = MAX77843_MUIC_ADCERROR, },
 	{ .reg_offset = 0, .mask = MAX77843_MUIC_ADC1K, },
 
@@ -174,6 +177,7 @@ static const struct regmap_irq max77843_muic_irq[] = {
 	{ .reg_offset = 1, .mask = MAX77843_MUIC_DCDTMR, },
 	{ .reg_offset = 1, .mask = MAX77843_MUIC_DXOVP, },
 	{ .reg_offset = 1, .mask = MAX77843_MUIC_VBVOLT, },
+	{ .reg_offset = 1, .mask = MAX77843_MUIC_VIDRM, },
 
 	/* INT3 interrupt */
 	{ .reg_offset = 2, .mask = MAX77843_MUIC_VBADC, },
@@ -247,15 +251,12 @@ static void max77843_charger_set_otg_vbus(struct max77843_muic_info *info,
 		 bool on)
 {
 	struct max77693_dev *max77843 = info->max77843;
-	unsigned int cnfg00;
 
+	/*Fixme : Use proper registers from downstream*/
 	if (on)
-		cnfg00 = MAX77843_CHG_OTG_MASK | MAX77843_CHG_BOOST_MASK;
+		regmap_write(max77843->regmap_chg,MAX77843_CHG_REG_CHG_CNFG_00,0x2a);
 	else
-		cnfg00 = MAX77843_CHG_ENABLE | MAX77843_CHG_BUCK_MASK;
-
-	regmap_update_bits(max77843->regmap_chg, MAX77843_CHG_REG_CHG_CNFG_00,
-			   MAX77843_CHG_MODE_MASK, cnfg00);
+		regmap_write(max77843->regmap_chg,MAX77843_CHG_REG_CHG_CNFG_00,0x00); //Disable charger too
 }
 
 static int max77843_muic_get_cable_type(struct max77843_muic_info *info,
@@ -670,6 +671,7 @@ static irqreturn_t max77843_muic_irq_handler(int irq, void *data)
 
 	switch (irq_type) {
 	case MAX77843_MUIC_IRQ_INT1_ADC:
+	case MAX77849_MUIC_IRQ_INT1_ADCLOW:
 	case MAX77843_MUIC_IRQ_INT1_ADCERROR:
 	case MAX77843_MUIC_IRQ_INT1_ADC1K:
 		info->irq_adc = true;
@@ -679,6 +681,7 @@ static irqreturn_t max77843_muic_irq_handler(int irq, void *data)
 	case MAX77843_MUIC_IRQ_INT2_DCDTMR:
 	case MAX77843_MUIC_IRQ_INT2_DXOVP:
 	case MAX77843_MUIC_IRQ_INT2_VBVOLT:
+	case MAX77849_MUIC_IRQ_INT2_VIDRM:
 		info->irq_chg = true;
 		break;
 	case MAX77843_MUIC_IRQ_INT3_VBADC:

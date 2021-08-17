@@ -110,6 +110,13 @@ static int max77843_probe(struct i2c_client *i2c,
 	max77843->irq = i2c->irq;
 	max77843->type = id->driver_data;
 
+	max77843->regmap_chg = devm_regmap_init_i2c(i2c,
+			&max77843_charger_regmap_config);
+	if (IS_ERR(max77843->regmap_chg)) {
+		dev_err(&i2c->dev, "Failed to allocate register map\n");
+		return PTR_ERR(max77843->regmap_chg);
+	}
+/*
 	max77843->regmap = devm_regmap_init_i2c(i2c,
 			&max77843_regmap_config);
 	if (IS_ERR(max77843->regmap)) {
@@ -138,8 +145,20 @@ static int max77843_probe(struct i2c_client *i2c,
 		dev_err(&i2c->dev, "Failed to init Charger\n");
 		goto err_pmic_id;
 	}
+*/
 
-	ret = regmap_update_bits(max77843->regmap,
+	/* No active discharge on safeout ldo 1,2 */
+	ret = regmap_update_bits(max77843->regmap_chg,
+				 MAX77843_SYS_REG_SAFEOUTCTRL,
+				 0x00, 0x30);
+	if (ret < 0) {
+		dev_err(&i2c->dev, "Failed to disable active discharge\n");
+	}
+
+	/* Disable charger */
+	regmap_write(max77843->regmap_chg,MAX77843_CHG_REG_CHG_CNFG_00,0x00);
+
+	ret = regmap_update_bits(max77843->regmap_chg,
 				 MAX77843_SYS_REG_INTSRCMASK,
 				 MAX77843_INTSRC_MASK_MASK,
 				 (unsigned int)~MAX77843_INTSRC_MASK_MASK);
