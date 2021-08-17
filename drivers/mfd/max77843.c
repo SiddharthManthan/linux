@@ -155,9 +155,6 @@ static int max77843_probe(struct i2c_client *i2c,
 		dev_err(&i2c->dev, "Failed to disable active discharge\n");
 	}
 
-	/* Disable charger */
-	regmap_write(max77843->regmap_chg,MAX77843_CHG_REG_CHG_CNFG_00,0x00);
-
 	ret = regmap_update_bits(max77843->regmap_chg,
 				 MAX77843_SYS_REG_INTSRCMASK,
 				 MAX77843_INTSRC_MASK_MASK,
