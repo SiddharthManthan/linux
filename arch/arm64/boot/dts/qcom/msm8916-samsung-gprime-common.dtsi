@@ -236,6 +236,14 @@
 	};
 };
 
+&blsp_i2c6 {
+	/* 
+	 * FIXME: Replace with RT5033 MFD when driver is available
+	 * I2C Bus enabled to allow charger control from userspace
+	 */
+	status = "okay";
+};
+
 &blsp1_uart2 {
 	status = "okay";
 };
